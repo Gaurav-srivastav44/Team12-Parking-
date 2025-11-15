@@ -1,0 +1,13 @@
+.fade-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+.fade-bg.active {
+  opacity: 1;
+}
