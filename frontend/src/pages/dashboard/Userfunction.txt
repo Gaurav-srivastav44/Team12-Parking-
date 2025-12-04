@@ -1,0 +1,179 @@
+1. User Authentication
+1.1 Login
+
+Allows users to log in using a username and password.
+
+Supports demo login for User, Manager, and Admin roles.
+
+After login, users are redirected based on their assigned role.
+
+1.2 Logout
+
+Clears authentication token from storage.
+
+Redirects user to the login page.
+
+Ensures session is securely terminated.
+
+2. User Dashboard Functions
+2.1 View Parking Lots
+
+Displays all available parking lots.
+
+Shows details like name, address, available slots, total slots, and distance (if location is enabled).
+
+2.2 Search Parking Lots
+
+Search lots by name or location.
+
+Responsive real-time filtering.
+
+2.3 Filter Parking Lots
+
+Users can filter based on:
+
+Covered parking
+
+Open-air parking
+
+EV charging
+
+Accessible (disabled-friendly)
+
+2.4 View Mode Switching
+
+Switch between List View and Map View.
+
+Map view displays lots visually (with mock/hardcoded map support if no API).
+
+3. Location Services
+3.1 Auto-detect Location
+
+Uses browser geolocation to detect current location.
+
+If denied, user can manually choose location via map picker.
+
+3.2 Manual Location Search
+
+User can search by city, landmark, or area.
+
+Application suggests nearby lots.
+
+3.3 Map Picker
+
+User selects a location on a map modal.
+
+Selected coordinates update user’s reference location.
+
+4. Slot Booking
+4.1 View Lot Details
+
+Shows lot description, slot count, features, pricing, and status.
+
+4.2 Select Slot
+
+User chooses an available slot shown in grid format.
+
+Slot statuses:
+
+Available
+
+Occupied
+
+Reserved
+
+Maintenance
+
+4.3 Confirm Booking
+
+Books a slot for a selected duration.
+
+Reservation data is stored in the mock API.
+
+5. Reservation Management
+5.1 View Active Reservations
+
+Displays all reservations made by the user.
+
+Shows remaining time and expiration.
+
+5.2 Cancel Reservation
+
+User can cancel a reservation.
+
+Frees the slot immediately.
+
+5.3 Reservation Notifications
+
+The system sends notifications for:
+
+Reservation nearing expiry
+
+Slot lost (someone else booked it)
+
+Reservation expired
+
+Slot status changed via manager or IoT (simulation)
+
+6. Utility Functions
+6.1 Distance Calculation
+
+Computes distance between user location and parking lot.
+
+6.2 Remaining Time Calculation
+
+Shows countdown timer for each reservation.
+
+6.3 Sorting Lots
+
+Automatically sorts lots closest to user.
+
+7. Notifications System
+7.1 Real-time Alerts (Simulated)
+
+Alerts shown inside dashboard:
+
+Info alerts
+
+Warning alerts
+
+Danger alerts
+
+7.2 Notification Rules
+
+Time left < 10 mins → Expiring soon
+
+Slot lost → Warning
+
+Reservation expired → Danger
+
+8. Error Handling
+
+Incorrect login → error message
+
+No location permission → fallback manual selection
+
+No lots found → friendly message
+
+Failed reservation or data fetch → clear UI error
+
+9. Role Handling
+
+User → Access to browsing and booking
+
+Manager → Redirected to Manager Dashboard
+
+Admin → Redirected to Admin Dashboard
+
+SUMMARY
+
+The user functionalities include:
+
+✔ Login & Logout
+✔ View & Filter Parking Lots
+✔ Map & List View
+✔ Slot Booking & Cancellation
+✔ Real-time Notifications
+✔ Location-based Sorting
+✔ Manage Reservations
+✔ Clean UI Interactions
