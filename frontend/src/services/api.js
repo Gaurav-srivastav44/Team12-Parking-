@@ -20,6 +20,17 @@ export const api = {
     return response.json();
   },
 
+  getProfile: async (tokenOverride) => {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = tokenOverride || localStorage.getItem('token');
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/profile`, { headers });
+    if (!response.ok) throw new Error('Failed to load profile');
+    return response.json();
+  },
+
   // Parking Lots
   getParkingLots: async () => {
     const response = await fetch(`${API_BASE_URL}/parking-lots`, {
@@ -116,13 +127,29 @@ const mockStorage = {
   },
   
   getSlotState(lotId, slotNumber) {
-    this.initLotSlots(lotId, lotId === '1' ? 50 : lotId === '2' ? 100 : 200);
+    const slotCounts = {
+      '1': 50,
+      '2': 100,
+      '3': 200,
+      '4': 40,
+      '5': 80,
+    };
+    const totalSlots = slotCounts[lotId] || 120;
+    this.initLotSlots(lotId, totalSlots);
     const slots = this.slotStates.get(lotId);
     return slots.get(slotNumber) || { status: 'available', vehicleNumber: null, reservedUntil: null, reservedBy: null };
   },
   
   updateSlotState(lotId, slotNumber, updates) {
-    this.initLotSlots(lotId, lotId === '1' ? 50 : lotId === '2' ? 100 : 200);
+    const slotCounts = {
+      '1': 50,
+      '2': 100,
+      '3': 200,
+      '4': 40,
+      '5': 80,
+    };
+    const totalSlots = slotCounts[lotId] || 120;
+    this.initLotSlots(lotId, totalSlots);
     const slots = this.slotStates.get(lotId);
     const current = slots.get(slotNumber) || { status: 'available', vehicleNumber: null, reservedUntil: null, reservedBy: null };
     slots.set(slotNumber, { ...current, ...updates });
@@ -143,6 +170,7 @@ export const mockApi = {
         pricePerHour: 5,
         lat: 40.7128,
         lng: -74.0060,
+        features: ['covered', 'ev', 'accessible'],
       },
       {
         id: '2',
@@ -152,6 +180,7 @@ export const mockApi = {
         pricePerHour: 3,
         lat: 40.7589,
         lng: -73.9851,
+        features: ['open', 'ev'],
       },
       {
         id: '3',
@@ -161,6 +190,27 @@ export const mockApi = {
         pricePerHour: 8,
         lat: 40.6413,
         lng: -73.7781,
+        features: ['covered', 'accessible', 'handicap'],
+      },
+      {
+        id: '4',
+        name: 'EV Supercharge Hub',
+        address: '12 Green Tech Park',
+        totalSlots: 40,
+        pricePerHour: 6,
+        lat: 40.7306,
+        lng: -73.9352,
+        features: ['ev', 'covered'],
+      },
+      {
+        id: '5',
+        name: 'Open-Air Riverside Lot',
+        address: '900 Riverside Dr',
+        totalSlots: 80,
+        pricePerHour: 2,
+        lat: 40.8180,
+        lng: -73.9600,
+        features: ['open'],
       },
     ];
     
@@ -310,6 +360,13 @@ export const mockApi = {
         };
       });
     return reservations;
+  },
+
+  getSlotStatus: async (lotId, slotId) => {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const slotNumber = parseInt(slotId.split('-')[1]);
+    const state = mockStorage.getSlotState(lotId, slotNumber);
+    return state;
   },
 };
 

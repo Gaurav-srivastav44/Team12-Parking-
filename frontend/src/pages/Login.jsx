@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import { FaUser, FaLock, FaArrowRight, FaMagic } from 'react-icons/fa';
 
 export default function Login() {
@@ -8,38 +9,86 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const performLogin = async (user, pass) => {
+  // Determine role
+  const inferRole = (name, override) => {
+    if (override) return override;
+    const normalized = name?.trim().toLowerCase();
+    if (normalized.includes('admin')) return 'admin';
+    if (normalized.includes('manager')) return 'manager';
+    return 'user';
+  };
+
+  const getRedirectPath = (role) =>
+    role === 'admin'
+      ? '/admin-dashboard'
+      : role === 'manager'
+      ? '/manager-dashboard'
+      : '/user-dashboard';
+
+  /** MOCK LOGIN (for demos) */
+  const performMockLogin = (user, roleOverride) => {
+    const role = inferRole(user, roleOverride);
+    const mockToken = 'mock-token-' + Date.now();
+
+    const userData = {
+      username: user,
+      id: Date.now(),
+      role,
+    };
+
+    login(userData, mockToken);
+    navigate(getRedirectPath(role), { replace: true });
+  };
+
+  /** REAL LOGIN + fallback */
+  const performLogin = async (user, pass, options = {}) => {
+    const { roleOverride, skipApi } = options;
     setError('');
     setLoading(true);
 
     try {
-      // Mock login - replace with actual API call when backend is ready
-      if (user && pass) {
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        // assign role based on username for demo accounts
-        let role = 'user';
-        const uname = String(user).toLowerCase();
-        if (uname === 'manager' || uname.includes('manager')) role = 'manager';
-        else if (uname === 'admin' || uname.includes('admin')) role = 'admin';
-
-        const userData = {
-          username: user,
-          id: Date.now(),
-          role,
-        };
-
-        login(userData, mockToken);
-        // Redirect based on role
-        if (role === 'manager') navigate('/manager-dashboard');
-        else if (role === 'admin') navigate('/admin-dashboard');
-        else navigate('/');
-      } else {
+      if (!user || !pass) {
         setError('Please enter username and password');
+        return;
       }
+
+      // Demo login (skip API)
+      if (skipApi) {
+        performMockLogin(user, roleOverride);
+        return;
+      }
+
+      // Actual API login
+      const { token } = await api.login(user, pass);
+
+      let userData = {
+        username: user,
+        id: Date.now(),
+        role: inferRole(user, roleOverride),
+      };
+
+      // Fetch profile (optional)
+      try {
+        const profile = await api.getProfile(token);
+        userData = {
+          username: profile.username || profile.email || user,
+          id: profile.id || profile._id || Date.now(),
+          role: profile.role || inferRole(user),
+          email: profile.email,
+          fullName: profile.fullName,
+        };
+      } catch (profileErr) {
+        console.warn('Profile fetch failed → using fallback data');
+      }
+
+      login(userData, token);
+      navigate(getRedirectPath(userData.role), { replace: true });
     } catch (err) {
+      console.error('Login failed:', err);
       setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -51,10 +100,13 @@ export default function Login() {
     await performLogin(username, password);
   };
 
-  const handleDemoLogin = async (demoUser) => {
+  const handleDemoLogin = async (demoUser, roleOverride) => {
     setUsername(demoUser.username);
     setPassword(demoUser.password);
-    await performLogin(demoUser.username, demoUser.password);
+    await performLogin(demoUser.username, demoUser.password, {
+      roleOverride,
+      skipApi: true,
+    });
   };
 
   return (
@@ -65,51 +117,52 @@ export default function Login() {
           <p className="text-gray-600">Sign in to continue</p>
         </div>
 
+        {/* ERROR MESSAGE */}
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
             {error}
           </div>
         )}
 
+        {/* FORM */}
         <form onSubmit={handleSubmit}>
+          {/* Username */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <div className="relative">
-              <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
           </div>
 
+          {/* Password */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
           </div>
 
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
             {!loading && <FaArrowRight />}
@@ -126,33 +179,38 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Demo Login Buttons */}
+        {/* DEMO BUTTONS */}
         <div className="space-y-3">
+
+          {/* User Demo */}
           <button
-            onClick={() => handleDemoLogin({ username: 'demo_user', password: 'demo123' })}
+            onClick={() =>
+              handleDemoLogin({ username: 'demo_user', password: 'demo123' }, 'user')
+            }
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold shadow-md"
           >
-            <FaMagic className="mr-1" />
-            Demo User
-          </button>
-          
-          <button
-            onClick={() => handleDemoLogin({ username: 'admin', password: 'admin123' })}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          >
-            <FaUser className="mr-1" />
-            Admin Demo
+            <FaMagic /> Demo User
           </button>
 
+          {/* Admin Demo */}
           <button
-            onClick={() => handleDemoLogin({ username: 'manager', password: 'manager123' })}
+            onClick={() => handleDemoLogin({ username: 'admin', password: 'admin123' }, 'admin')}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold shadow-md"
           >
-            <FaUser className="mr-1" />
-            Manager Demo
+            <FaUser /> Admin Demo
+          </button>
+
+          {/* Manager Demo */}
+          <button
+            onClick={() =>
+              handleDemoLogin({ username: 'manager', password: 'manager123' }, 'manager')
+            }
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold shadow-md"
+          >
+            <FaUser /> Manager Demo
           </button>
         </div>
 
@@ -163,4 +221,3 @@ export default function Login() {
     </div>
   );
 }
-

@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const isAdminView = user?.role === 'admin' || user?.role === 'manager';
+  const dashboardPath = isAdminView ? '/manager-dashboard' : '/user-dashboard';
 
   const handleLogout = () => {
     logout();
@@ -22,8 +24,8 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             {isAuthenticated ? (
               <>
-                <Link to="/manager-dashboard" className="hover:text-blue-200 transition">
-                  Dashboard
+                <Link to={dashboardPath} className="hover:text-blue-200 transition">
+                  {isAdminView ? 'Admin Dashboard' : 'Dashboard'}
                 </Link>
                 <span className="text-blue-200">Welcome, {user?.username}</span>
                 <button
