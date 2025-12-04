@@ -13,7 +13,6 @@ import bg4 from "../assets/bg4.png";
 
 import SlideOne from "../components/slideone";
 import "./BackgroundSlider.css";
-import schemesData from "../data/schemes.json";
 
 export default function Home() {
 
@@ -28,11 +27,13 @@ export default function Home() {
   const [current, setCurrent] = useState(0);
 
   const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+
   useEffect(() => {
     const cb = () => setLanguage(localStorage.getItem("language") || "en");
     window.addEventListener("language-change", cb);
     return () => window.removeEventListener("language-change", cb);
   }, []);
+
   const t = (en, hi) => (language === "en" ? en : hi);
 
   // Background Slider
@@ -43,26 +44,34 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // ⭐ Fetch schemes from backend ONLY
+  // ⭐ Fetch schemes from backend
   useEffect(() => {
-    setSchemes(schemesData);
-    setLoading(false);
+    fetch("http://localhost:5000/api/schemes")
+      .then((res) => res.json())
+      .then((data) => {
+        setSchemes(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load schemes");
+        setLoading(false);
+      });
   }, []);
 
   // ⭐ Smart Search & Category Filtering
   const filteredSchemes = schemes.filter((s) => {
-    const name = s?.schemeName || "";
-    const desc = s?.shortSchemeDesc || "";
-    const categoryName = s?.schemeCategory?.[0] || "";
+    const name = s.schemeName?.toLowerCase() || "";
+    const desc = s.description?.toLowerCase() || "";
+    const cat = s.category?.toLowerCase() || "";
 
     const matchesSearch =
-      name.toLowerCase().includes(search.toLowerCase()) ||
-      desc.toLowerCase().includes(search.toLowerCase()) ||
-      categoryName.toLowerCase().includes(search.toLowerCase());
+      name.includes(search.toLowerCase()) ||
+      desc.includes(search.toLowerCase()) ||
+      cat.includes(search.toLowerCase());
 
     const matchesCategory =
       category === "All" ||
-      categoryName.toLowerCase() === category.toLowerCase();
+      cat === category.toLowerCase();
 
     return matchesSearch && matchesCategory;
   });
@@ -85,7 +94,7 @@ export default function Home() {
   return (
     <div className="space-y-20">
 
-      {/* ================= HERO SECTION ================= */}
+      {/* ================= HERO ================= */}
       <section className="relative pt-4 h-[600px] overflow-hidden rounded-2xl shadow-lg">
         <SlideOne />
       </section>
@@ -105,8 +114,13 @@ export default function Home() {
             "Finance",
             "Housing",
             "Women & Child",
-            "Social Welfare",
-            "Employment"
+            "Social Security",
+            "Employment",
+            "Environment",
+            "Sports",
+            "Technology",
+            "Entrepreneurship",
+            "Food Security"
           ].map((cat) => (
             <button
               key={cat}
@@ -146,7 +160,7 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           {filteredSchemes.map((scheme) => (
             <div
-              key={scheme.slug}
+              key={scheme.id}
               className="bg-white p-5 rounded-xl shadow-lg border border-blue-100 
                          hover:shadow-xl hover:-translate-y-1 transition-all"
             >
@@ -155,7 +169,7 @@ export default function Home() {
               </h3>
 
               <p className="text-sm mt-2 text-gray-600 line-clamp-3">
-                {scheme.shortSchemeDesc || "No description available."}
+                {scheme.description}
               </p>
 
               <div className="mt-4 flex justify-between">
@@ -168,7 +182,7 @@ export default function Home() {
                 </button>
 
                 <a
-                  href={`https://www.myscheme.gov.in/schemes/${scheme.slug}`}
+                  href={scheme.applyUrl}
                   target="_blank"
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                 >
@@ -189,14 +203,12 @@ export default function Home() {
             </h3>
 
             <p className="text-gray-700 mt-3 leading-relaxed">
-              {selected.longSchemeDesc ||
-                selected.shortSchemeDesc ||
-                "No description available."}
+              {selected.description}
             </p>
 
             <div className="mt-6 flex justify-between">
               <a
-                href={`https://www.myscheme.gov.in/schemes/${selected.slug}`}
+                href={selected.applyUrl}
                 target="_blank"
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
               >

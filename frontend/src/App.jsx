@@ -14,6 +14,10 @@ import Stories from "./pages/Stories";
 import Help from "./pages/Help";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import DashboardHome from "./pages/dashboard/DashboardHome";
+import DashboardSchemes from "./pages/dashboard/DashboardSchemes";
+import DashboardDocuments from "./pages/dashboard/DashboardDocuments";
+import DashboardApplications from "./pages/dashboard/DashboardApplications";
 
 import SlideOne from "./components/slideone";
 export default function App() {
@@ -34,7 +38,12 @@ export default function App() {
             <Route path="/results" element={<Results />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />}>
+              <Route path="home" element={<DashboardHome />} />
+              <Route path="schemes" element={<DashboardSchemes />} />
+              <Route path="documents" element={<DashboardDocuments />} />
+              <Route path="applications" element={<DashboardApplications />} />
+            </Route>
             <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
