@@ -5,7 +5,7 @@ import { useParkingLots } from '../hooks/useParkingLots';
 import { mockApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LotCard from '../components/LotCard';
-import { FaSearch, FaClock, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaClock, FaTimes, FaBolt, FaCogs, FaChartBar, FaMapMarkerAlt, FaCar, FaDollarSign } from 'react-icons/fa';
 
 export default function ManagerDashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -15,6 +15,23 @@ export default function ManagerDashboard() {
   const [reservations, setReservations] = useState([]);
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [activeTab, setActiveTab] = useState('lots'); // 'lots' or 'reservations'
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    totalSlots: 0,
+    pricePerHour: 0,
+    timeLimitMinutes: 0,
+    specialOffers: '',
+    active: true,
+  });
+  const [editingLotId, setEditingLotId] = useState(null);
+  const isManager = user?.role === 'manager';
+  const [liveMode, setLiveMode] = useState(false);
+  const [manageSlotsLot, setManageSlotsLot] = useState(null);
+  const [manageSlotsList, setManageSlotsList] = useState([]);
+  const [reportData, setReportData] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -63,6 +80,99 @@ export default function ManagerDashboard() {
     }
   };
 
+  const openAddForm = () => {
+    setEditingLotId(null);
+    setFormData({ name: '', address: '', totalSlots: 0, pricePerHour: 0, timeLimitMinutes: 0, specialOffers: '', active: true });
+    setShowForm(true);
+  };
+
+  const openEditForm = (lot) => {
+    setEditingLotId(lot.id);
+    setFormData({
+      name: lot.name || '',
+      address: lot.address || '',
+      totalSlots: lot.totalSlots || 0,
+      pricePerHour: lot.pricePerHour || 0,
+      timeLimitMinutes: lot.timeLimitMinutes || 0,
+      specialOffers: lot.specialOffers || '',
+      active: lot.active !== false,
+    });
+    setShowForm(true);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingLotId) {
+        await mockApi.updateParkingLot(editingLotId, formData);
+        alert('Parking lot updated');
+      } else {
+        await mockApi.createParkingLot(formData);
+        alert('Parking lot created');
+      }
+      setShowForm(false);
+      refetch();
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    }
+  };
+
+  const toggleActive = async (lot) => {
+    try {
+      await mockApi.updateParkingLot(lot.id, { active: !lot.active });
+      refetch();
+    } catch (err) {
+      alert('Failed to update status: ' + err.message);
+    }
+  };
+
+  // Live polling
+  useEffect(() => {
+    let id;
+    if (liveMode) {
+      id = setInterval(() => {
+        refetch();
+      }, 5000);
+    }
+    return () => clearInterval(id);
+  }, [liveMode]);
+
+  const openManageSlots = async (lot) => {
+    setManageSlotsLot(lot);
+    try {
+      const slots = await mockApi.getSlots(lot.id);
+      setManageSlotsList(slots.slice(0, 50)); // show first 50 for performance
+    } catch (err) {
+      alert('Failed to load slots: ' + err.message);
+    }
+  };
+
+  const saveSlotStatus = async (slot, newStatus) => {
+    try {
+      await mockApi.updateSlotStatus(manageSlotsLot.id, slot.number, newStatus);
+      const updated = manageSlotsList.map(s => s.number === slot.number ? { ...s, status: newStatus } : s);
+      setManageSlotsList(updated);
+      refetch();
+    } catch (err) {
+      alert('Failed to update slot: ' + err.message);
+    }
+  };
+
+  const openReport = async (lot) => {
+    try {
+      const r = await mockApi.generateReport(lot.id);
+      setReportData(r);
+      setShowReportModal(true);
+    } catch (err) {
+      alert('Failed to generate report: ' + err.message);
+    }
+  };
+
   if (!isAuthenticated) {
     return null;
   }
@@ -89,6 +199,21 @@ export default function ManagerDashboard() {
           </h1>
           <p className="text-gray-600">Manage your parking lots and reservations</p>
         </div>
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold text-gray-800 mb-1">
+                Welcome back, <span className="text-blue-600">{user?.username || 'User'}</span>
+              </h1>
+              <p className="text-gray-600">Manage your parking lots, slots and reports</p>
+            </div>
+            <div className="ml-4">
+              <div className="inline-flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border">
+                <div className="text-sm text-gray-500 mr-3">Total Lots</div>
+                <div className="text-xl font-bold text-gray-800">{parkingLots.length}</div>
+              </div>
+            </div>
+          </div>
 
         {/* Tabs */}
         <div className="mb-6 border-b border-gray-200">
@@ -116,8 +241,25 @@ export default function ManagerDashboard() {
           </nav>
         </div>
 
+        {/* Non-manager info */}
+        {!isManager && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-sm text-yellow-800">Management actions are hidden. You must be a manager to add or edit parking lots.</p>
+          </div>
+        )}
+
         {activeTab === 'lots' && (
           <>
+            {isManager && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={openAddForm}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  + Add Parking Lot
+                </button>
+              </div>
+            )}
             {/* Search Bar */}
             <div className="mb-6">
               <div className="relative max-w-md">
@@ -131,6 +273,28 @@ export default function ManagerDashboard() {
                 />
               </div>
             </div>
+              {/* Search Bar */}
+              <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="relative w-full md:w-1/2">
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search parking lots..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-transparent shadow-sm"
+                  />
+                </div>
+                <div className="flex items-center space-x-3">
+                  {isManager && (
+                    <button onClick={openAddForm} className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg shadow hover:from-green-600 hover:to-green-700">
+                      <FaBolt />
+                      Add Parking Lot
+                    </button>
+                  )}
+                  <div className="bg-white border px-3 py-2 rounded shadow-sm text-sm text-gray-600">Total Slots: <strong className="text-gray-800">{parkingLots.reduce((s, l) => s + l.totalSlots, 0)}</strong></div>
+                </div>
+              </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -149,6 +313,47 @@ export default function ManagerDashboard() {
                 <p className="text-3xl font-bold text-green-600">
                   {parkingLots.reduce((sum, lot) => sum + lot.availableSlots, 0)}
                 </p>
+              </div>
+              {/* Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <FaMapMarkerAlt className="text-blue-500 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm text-gray-500">Total Lots</h3>
+                    <div className="text-2xl font-bold text-gray-800">{parkingLots.length}</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                  <div className="p-3 bg-indigo-50 rounded-lg">
+                    <FaCar className="text-indigo-500 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm text-gray-500">Total Slots</h3>
+                    <div className="text-2xl font-bold text-gray-800">{parkingLots.reduce((sum, lot) => sum + lot.totalSlots, 0)}</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <FaDollarSign className="text-green-500 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm text-gray-500">Available Slots</h3>
+                    <div className="text-2xl font-bold text-green-600">{parkingLots.reduce((sum, lot) => sum + lot.availableSlots, 0)}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Live Mode</h3>
+                  <p className="text-sm text-gray-500">{liveMode ? 'On (polling every 5s)' : 'Off'}</p>
+                </div>
+                <div>
+                  <button onClick={() => setLiveMode(m => !m)} className={`px-3 py-2 rounded ${liveMode ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {liveMode ? 'Stop' : 'Start'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -169,11 +374,150 @@ export default function ManagerDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredLots.map((lot) => (
-                  <LotCard key={lot.id} lot={lot} />
+                  <div key={lot.id} className="relative">
+                    <LotCard lot={lot} />
+                    {isManager && (
+                      <div className="absolute top-3 right-3 flex space-x-2">
+                        <button
+                          onClick={() => openEditForm(lot)}
+                          className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm"
+                          title="Edit Lot"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleActive(lot); }}
+                          className={`px-2 py-1 rounded text-sm ${lot.active ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                          title="Toggle Active"
+                        >
+                          {lot.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    )}
+                    <div className="absolute left-3 top-3">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${lot.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+                        {lot.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600 p-3 bg-white rounded-b-lg border-t">
+                      <div className="flex justify-between"><div>Total Slots:</div><div><strong>{lot.totalSlots}</strong></div></div>
+                      <div className="flex justify-between"><div>Available:</div><div><strong>{lot.availableSlots}</strong></div></div>
+                      <div className="flex justify-between"><div>Occupied:</div><div><strong>{lot.totalSlots - lot.availableSlots}</strong></div></div>
+                      <div className="mt-2 flex space-x-2">
+                        {isManager && (
+                          <>
+                            <button onClick={(e) => { e.stopPropagation(); openManageSlots(lot); }} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded text-sm flex items-center gap-2"><FaCogs /> Manage Slots</button>
+                            <button onClick={(e) => { e.stopPropagation(); openReport(lot); }} className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm flex items-center gap-2"><FaChartBar /> Report</button>
+                          </>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/lot/${lot.id}`); }} className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm">View</button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </>
+        )}
+
+        {/* Add / Edit Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <form onSubmit={handleFormSubmit} className="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">{editingLotId ? 'Edit Parking Lot' : 'Add Parking Lot'}</h2>
+                <button type="button" onClick={() => setShowForm(false)} className="text-gray-500">Close</button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <input name="name" placeholder="Lot name" value={formData.name} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
+                <input name="address" placeholder="Address" value={formData.address} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
+                <div className="grid grid-cols-2 gap-2">
+                  <input name="totalSlots" type="number" placeholder="Total slots" value={formData.totalSlots} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
+                  <input name="pricePerHour" type="number" placeholder="Price per hour" value={formData.pricePerHour} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
+                </div>
+                <input name="timeLimitMinutes" type="number" placeholder="Time limit (minutes)" value={formData.timeLimitMinutes} onChange={handleFormChange} className="border px-3 py-2 rounded" />
+                <input name="specialOffers" placeholder="Special offers" value={formData.specialOffers} onChange={handleFormChange} className="border px-3 py-2 rounded" />
+                <label className="flex items-center space-x-2"><input name="active" type="checkbox" checked={formData.active} onChange={handleFormChange} /> <span>Active</span></label>
+              </div>
+
+              <div className="mt-4 flex justify-end space-x-2">
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded border">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white">{editingLotId ? 'Save' : 'Create'}</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Manage Slots Modal */}
+        {manageSlotsLot && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">Manage Slots — {manageSlotsLot.name}</h2>
+                <button onClick={() => setManageSlotsLot(null)} className="text-gray-500">Close</button>
+              </div>
+              <div className="max-h-96 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-600">
+                      <th className="p-2">#</th>
+                      <th className="p-2">Status</th>
+                      <th className="p-2">Vehicle</th>
+                      <th className="p-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {manageSlotsList.map(slot => (
+                      <tr key={slot.id} className="border-t">
+                        <td className="p-2">{slot.number}</td>
+                        <td className="p-2">{slot.status}</td>
+                        <td className="p-2">{slot.vehicleNumber || '-'}</td>
+                        <td className="p-2">
+                          <select defaultValue={slot.status} onChange={(e) => saveSlotStatus(slot, e.target.value)} className="border rounded px-2 py-1">
+                            <option value="available">available</option>
+                            <option value="occupied">occupied</option>
+                            <option value="reserved">reserved</option>
+                            <option value="maintenance">maintenance</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Report Modal */}
+        {showReportModal && reportData && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-xl shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">Report — {reportData.lotName}</h2>
+                <button onClick={() => { setShowReportModal(false); setReportData(null); }} className="text-gray-500">Close</button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-600">Total Reservations</div>
+                  <div className="text-2xl font-bold">{reportData.totalReservations}</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-600">Estimated Revenue</div>
+                  <div className="text-2xl font-bold">${reportData.revenue}</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-600">Peak Hour</div>
+                  <div className="text-2xl font-bold">{reportData.peakHour}</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-600">Occupied / Available</div>
+                  <div className="text-2xl font-bold">{reportData.occupied} / {reportData.available}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'reservations' && (
