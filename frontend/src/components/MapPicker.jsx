@@ -1,62 +1,39 @@
 import React, { useState } from "react";
-import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
 
-const containerStyle = {
-  width: "100%",
-  height: "400px",
-};
-
-const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
-
-export default function MapPicker({
-  onSelect,
-  center = DEFAULT_CENTER,
-  zoom = 12,
-  height = "400px",
-}) {
-  const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  const [markerPos, setMarkerPos] = useState(null);
-
-  if (!API_KEY) {
-    return (
-      <div className="p-4 text-sm text-red-600 bg-red-50 rounded-lg">
-        Missing Google Maps API key. Add <code>VITE_GOOGLE_MAPS_API_KEY</code> to
-        your environment to enable location selection.
-      </div>
-    );
-  }
-
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: API_KEY,
-  });
+export default function MapPicker({ center = { lat: 28.6139, lng: 77.2090 }, onSelect }) {
+  const [selected, setSelected] = useState(center);
 
   const handleClick = (e) => {
-    const pos = {
-      lat: e.latLng.lat(),
-      lng: e.latLng.lng(),
-    };
-    setMarkerPos(pos);
-    onSelect?.(pos);
+    const rect = e.target.getBoundingClientRect();
+    const x = e.clientX - rect.left; 
+    const y = e.clientY - rect.top;
+
+    const lat = (y / rect.height) * 180 - 90;      
+    const lng = (x / rect.width) * 360 - 180;
+
+    const pos = { lat, lng };
+    setSelected(pos);
+    onSelect(pos);
   };
 
-  if (loadError) {
-    return (
-      <div className="p-4 text-sm text-red-600 bg-red-50 rounded-lg">
-        Failed to load Google Maps. Please verify your API key.
-      </div>
-    );
-  }
-
-  if (!isLoaded) return <p>Loading map...</p>;
-
   return (
-    <GoogleMap
-      mapContainerStyle={{ ...containerStyle, height }}
-      center={markerPos || center}
-      zoom={zoom}
+    <div
       onClick={handleClick}
+      className="w-full h-96 rounded-xl border border-gray-300 relative cursor-crosshair bg-gray-100 bg-[linear-gradient(#e5e7eb_1px,transparent_1px),linear-gradient(90deg,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px]"
     >
-      {markerPos && <Marker position={markerPos} />}
-    </GoogleMap>
+      {selected && (
+        <div
+          className="absolute text-red-600"
+          style={{
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: "32px",
+          }}
+        >
+          📍
+        </div>
+      )}
+    </div>
   );
 }
