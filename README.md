@@ -1,7 +1,10 @@
 # 🚗 Smart Parking Slot Management System  
 A modern full-stack parking management solution with **real-time updates**, **slot reservation**, **admin/manager panel**, **map-based search**, and **smart notifications**.
 
----
+#🔗 Live Demo
+👉 Parking Manager Demo:
+https://lustrous-licorice-dc7743.netlify.app/
+(Replace with your actual deployed URL—Vercel, Netlify, Render, etc.)
 
 ## 📌 Features
 
