@@ -1,0 +1,16 @@
+Parking Facility Manager
+Registers parking lot with total capacity and slot types.
+
+
+Updates slot availability manually or via IoT sensors.
+
+
+Sets pricing, time limits, and special offers.
+
+
+Monitors real-time occupancy dashboards.
+
+
+Generates reports on usage, peak hours, and revenue.
+
+
