@@ -8,7 +8,7 @@ import LotCard from '../components/LotCard';
 import { FaSearch, FaClock, FaTimes } from 'react-icons/fa';
 
 export default function ManagerDashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { parkingLots, loading, error, refetch } = useParkingLots();
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,14 +16,23 @@ export default function ManagerDashboard() {
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [activeTab, setActiveTab] = useState('lots'); // 'lots' or 'reservations'
 
+  const canAccessDashboard = user?.role === 'manager' || user?.role === 'admin';
+
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
+    if (!canAccessDashboard) {
+      navigate('/', { replace: true });
+      return;
+    }
     fetchReservations();
     refetch(); // Refresh parking lots on mount
-  }, [isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, canAccessDashboard, navigate]);
 
   // Refresh when returning to this page
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function ManagerDashboard() {
     }
   };
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !canAccessDashboard) {
     return null;
   }
 

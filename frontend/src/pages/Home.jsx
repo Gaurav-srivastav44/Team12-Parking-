@@ -4,7 +4,20 @@ import { useAuth } from '../context/AuthContext';
 import { FaCar, FaMapMarkerAlt, FaClock, FaCheckCircle } from 'react-icons/fa';
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const isAdminView = user?.role === 'admin' || user?.role === 'manager';
+  const heroCta = {
+    to: !isAuthenticated
+      ? '/login'
+      : isAdminView
+      ? '/manager-dashboard'
+      : '/user-dashboard',
+    label: !isAuthenticated
+      ? 'Get Started'
+      : isAdminView
+      ? 'Go to Admin Dashboard'
+      : 'Go to Dashboard',
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -15,22 +28,12 @@ export default function Home() {
           <p className="text-xl mb-8 text-blue-100">
             Smart parking solutions for modern cities
           </p>
-          {!isAuthenticated && (
-            <Link
-              to="/login"
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
-            >
-              Get Started
-            </Link>
-          )}
-          {isAuthenticated && (
-            <Link
-              to="/manager-dashboard"
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
-            >
-              Go to Dashboard
-            </Link>
-          )}
+          <Link
+            to={heroCta.to}
+            className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+          >
+            {heroCta.label}
+          </Link>
         </div>
       </div>
 

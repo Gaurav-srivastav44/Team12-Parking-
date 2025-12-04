@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import LotDetail from "./pages/LotDetail";
 import ManagerDashboard from "./pages/ManagerDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/lot/:id" element={<LotDetail />} />
               <Route path="/manager-dashboard" element={<ManagerDashboard />} />
+              <Route path="/user-dashboard" element={<UserDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

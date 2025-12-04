@@ -8,6 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -16,20 +17,35 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Mock login - replace with actual API call when backend is ready
-      if (user && pass) {
-        const mockToken = 'mock-jwt-token-' + Date.now();
-        const userData = {
-          username: user,
-          id: Date.now(),
-          role: 'user',
-        };
-        
-        login(userData, mockToken);
+      if (!user || !pass) {
+        setError('Please enter username and password');
+        return;
+      }
+
+      // Mock Login
+      const mockToken = 'mock-jwt-token-' + Date.now();
+
+      let role = 'user';
+
+      // Auto-assign roles based on demo accounts
+      if (user === 'admin') role = 'admin';
+      if (user === 'manager') role = 'manager';
+
+      const userData = {
+        username: user,
+        id: Date.now(),
+        role: role,
+      };
+
+      login(userData, mockToken);
+
+      // Redirect based on role
+      if (role === 'manager' || role === 'admin') {
         navigate('/manager-dashboard');
       } else {
-        setError('Please enter username and password');
+        navigate('/user-dashboard');
       }
+
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -107,7 +123,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300"></div>
@@ -117,32 +132,31 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Demo Login Buttons */}
         <div className="space-y-3">
           <button
             onClick={() => handleDemoLogin({ username: 'demo_user', password: 'demo123' })}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >
-            <FaMagic className="mr-1" />
+            <FaMagic />
             Demo User
           </button>
-          
+
           <button
             onClick={() => handleDemoLogin({ username: 'admin', password: 'admin123' })}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >
-            <FaUser className="mr-1" />
+            <FaUser />
             Admin Demo
           </button>
 
           <button
             onClick={() => handleDemoLogin({ username: 'manager', password: 'manager123' })}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >
-            <FaUser className="mr-1" />
+            <FaUser />
             Manager Demo
           </button>
         </div>
@@ -154,4 +168,3 @@ export default function Login() {
     </div>
   );
 }
-
