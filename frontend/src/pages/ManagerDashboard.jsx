@@ -30,6 +30,7 @@ export default function ManagerDashboard() {
   const [liveMode, setLiveMode] = useState(false);
   const [manageSlotsLot, setManageSlotsLot] = useState(null);
   const [manageSlotsList, setManageSlotsList] = useState([]);
+  const [iotEnabled, setIotEnabled] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -150,6 +151,35 @@ export default function ManagerDashboard() {
     } catch (err) {
       alert('Failed to load slots: ' + err.message);
     }
+  };
+
+  // Poll for IoT/live updates when manager opens the modal and enables IoT
+  useEffect(() => {
+    let id;
+    if (manageSlotsLot && iotEnabled) {
+      id = setInterval(async () => {
+        try {
+          const slots = await mockApi.getSlots(manageSlotsLot.id);
+          setManageSlotsList(slots.slice(0, 50));
+        } catch (err) {
+          console.error('IoT polling error:', err);
+        }
+      }, 3000); // poll every 3s
+    }
+    return () => clearInterval(id);
+  }, [manageSlotsLot, iotEnabled]);
+
+  const simulateIoTUpdate = () => {
+    if (!manageSlotsList.length) return;
+    const updated = manageSlotsList.map((s) => {
+      // randomly flip a small percentage of slots between available/occupied
+      if (Math.random() < 0.12) {
+        const newStatus = s.status === 'available' ? 'occupied' : 'available';
+        return { ...s, status: newStatus };
+      }
+      return s;
+    });
+    setManageSlotsList(updated);
   };
 
   const saveSlotStatus = async (slot, newStatus) => {
@@ -454,8 +484,15 @@ export default function ManagerDashboard() {
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-lg">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Manage Slots — {manageSlotsLot.name}</h2>
-                <button onClick={() => setManageSlotsLot(null)} className="text-gray-500">Close</button>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-bold">Manage Slots — {manageSlotsLot.name}</h2>
+                  <label className="flex items-center space-x-2 text-sm text-gray-600">
+                    <input type="checkbox" checked={iotEnabled} onChange={(e) => setIotEnabled(e.target.checked)} />
+                    <span>Live IoT updates</span>
+                  </label>
+                  <button type="button" onClick={simulateIoTUpdate} className="ml-2 px-2 py-1 bg-gray-100 rounded text-sm">Simulate IoT</button>
+                </div>
+                <button onClick={() => { setManageSlotsLot(null); setIotEnabled(false); }} className="text-gray-500">Close</button>
               </div>
               <div className="max-h-96 overflow-auto">
                 <table className="w-full text-sm">
