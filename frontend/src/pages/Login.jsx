@@ -60,7 +60,7 @@ export default function Login() {
         </div>
 
         <h1 className="text-center text-xl font-semibold text-gray-700 mb-8">
-          {t("Your Gateway to Government Opportunities", "सरकारी अवसरों के लिए आपका गेटवे")}
+          {t("Find Your Perfect Parking Spot", "अपनी पार्किंग जगह खोजें")}
         </h1>
 
         {error && (

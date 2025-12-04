@@ -97,7 +97,7 @@ export default function Signup() {
         </div>
 
         <h2 className="text-2xl font-bold text-center text-gray-700 mb-6">
-          {t("Create Your Account", "अपना खाता बनाएं")}
+          {t("Create Your Parking Account", "अपना पार्किंग खाता बनाएं")}
         </h2>
 
         {error && <p className="text-center text-red-600 bg-red-100 p-2 rounded mb-4">{error}</p>}
@@ -136,85 +136,88 @@ export default function Signup() {
             required
           />
 
-          {/* Age */}
+          {/* Age → Repurposed as Driver's License Years */}
           <input
             type="number"
             name="age"
-            placeholder="Age"
+            placeholder={t("Years of Driving Experience","ड्राइविंग अनुभव (वर्ष)")}
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           />
 
-          {/* Gender */}
+          {/* Gender → Repurposed as Vehicle Type */}
           <select
             name="gender"
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           >
-            <option value="">{t("Select Gender","शुद्ध चयन करें")}</option>
-            <option>{t("Male","पुरुष")}</option>
-            <option>{t("Female","महिला")}</option>
-            <option>{t("Other","अन्य")}</option>
+            <option value="">{t("Select Vehicle Type","वाहन प्रकार चुनें")}</option>
+            <option>{t("Car","कार")}</option>
+            <option>{t("Motorcycle","मोटरसाइकिल")}</option>
+            <option>{t("SUV","SUV")}</option>
+            <option>{t("Truck","ट्रक")}</option>
+            <option>{t("Van","वैन")}</option>
           </select>
 
-          {/* State */}
+          {/* State → Repurposed as City/Location */}
           <input
             type="text"
             name="state"
-            placeholder="State / City"
+            placeholder={t("City / Location","शहर / स्थान")}
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           />
 
-          {/* Category */}
+          {/* Category → Repurposed as Vehicle Category */}
           <select
             name="category"
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           >
-            <option value="">{t("Select Category","श्रेणी चयन करें")}</option>
-            <option>{t("General","सामान्य")}</option>
-            <option>{t("OBC","OBC")}</option>
-            <option>{t("SC","SC")}</option>
-            <option>{t("ST","ST")}</option>
+            <option value="">{t("Select Vehicle Category","वाहन श्रेणी चुनें")}</option>
+            <option>{t("Sedan","सेडान")}</option>
+            <option>{t("Hatchback","हैचबैक")}</option>
+            <option>{t("SUV","SUV")}</option>
+            <option>{t("Compact","कॉम्पैक्ट")}</option>
+            <option>{t("Large Vehicle","बड़ा वाहन")}</option>
           </select>
 
-          {/* Income */}
+          {/* Income → Repurposed as Monthly Parking Budget */}
           <input
             type="number"
             name="income"
-            placeholder="Annual Income"
+            placeholder={t("Monthly Parking Budget (₹)","मासिक पार्किंग बजट (₹)")}
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           />
 
-          {/* Education Level */}
+          {/* Education → Repurposed as Vehicle License Plate */}
           <input
             type="text"
             name="education"
-            placeholder="Education Level"
+            placeholder={t("Vehicle License Plate","वाहन लाइसेंस प्लेट")}
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           />
 
-          {/* Employment Status */}
+          {/* Employment → Repurposed as Payment Method */}
           <select
             name="employment"
             className="p-3 border rounded-xl outline-none"
             onChange={handleChange}
             required
           >
-            <option value="">{t("Employment Status","रोजगार स्थिति")}</option>
-            <option>{t("Student","छात्र")}</option>
-            <option>{t("Employed","रोजगारित")}</option>
-            <option>{t("Unemployed","अर्जित नहीं")}</option>
-            <option>{t("Self-Employed","स्व-रोजगार")}</option>
+            <option value="">{t("Preferred Payment Method","पसंदीदा भुगतान विधि")}</option>
+            <option>{t("Credit Card","क्रेडिट कार्ड")}</option>
+            <option>{t("Debit Card","डेबिट कार्ड")}</option>
+            <option>{t("UPI","UPI")}</option>
+            <option>{t("Cash","नकद")}</option>
           </select>
 
           {/* Username */}
