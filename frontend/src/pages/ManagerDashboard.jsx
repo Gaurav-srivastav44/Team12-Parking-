@@ -103,17 +103,24 @@ export default function ManagerDashboard() {
 
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : (type === 'number' ? (value === '' ? '' : Number(value)) : value) }));
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        pricePerHour: Number(formData.pricePerHour) || 0,
+        totalSlots: Number(formData.totalSlots) || 0,
+        timeLimitMinutes: Number(formData.timeLimitMinutes) || 0,
+      };
+
       if (editingLotId) {
-        await mockApi.updateParkingLot(editingLotId, formData);
+        await mockApi.updateParkingLot(editingLotId, payload);
         alert('Parking lot updated');
       } else {
-        await mockApi.createParkingLot(formData);
+        await mockApi.createParkingLot(payload);
         alert('Parking lot created');
       }
       setShowForm(false);
@@ -223,19 +230,12 @@ export default function ManagerDashboard() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Welcome, {user?.username || 'User'}!
-          </h1>
-          <p className="text-gray-600">Manage your parking lots and reservations</p>
-        </div>
-          {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-extrabold text-gray-800 mb-1">
-                Welcome back, <span className="text-blue-600">{user?.username || 'User'}</span>
+                <span className="text-blue-600">{user?.username || 'User'}</span>, your dashboard
               </h1>
-              <p className="text-gray-600">Manage your parking lots, slots and reports</p>
+              <p className="text-gray-600">Quick actions, lot overview and live controls</p>
             </div>
             <div className="ml-4">
               <div className="inline-flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border">
@@ -243,7 +243,7 @@ export default function ManagerDashboard() {
                 <div className="text-xl font-bold text-gray-800">{parkingLots.length}</div>
               </div>
             </div>
-          </div>
+        </div>
 
         {/* Tabs */}
         <div className="mb-6 border-b border-gray-200">
@@ -290,21 +290,7 @@ export default function ManagerDashboard() {
                 </button>
               </div>
             )}
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative max-w-md">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search parking lots..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-              {/* Search Bar */}
-              <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="relative w-full md:w-1/2">
                   <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
@@ -326,26 +312,7 @@ export default function ManagerDashboard() {
                 </div>
               </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Total Lots</h3>
-                <p className="text-3xl font-bold text-gray-800">{parkingLots.length}</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Total Slots</h3>
-                <p className="text-3xl font-bold text-gray-800">
-                  {parkingLots.reduce((sum, lot) => sum + lot.totalSlots, 0)}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Available Slots</h3>
-                <p className="text-3xl font-bold text-green-600">
-                  {parkingLots.reduce((sum, lot) => sum + lot.availableSlots, 0)}
-                </p>
-              </div>
-              {/* Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <FaMapMarkerAlt className="text-blue-500 text-xl" />
@@ -374,7 +341,7 @@ export default function ManagerDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between">
+              <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between mt-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Live Mode</h3>
                   <p className="text-sm text-gray-500">{liveMode ? 'On (polling every 5s)' : 'Off'}</p>
@@ -385,7 +352,6 @@ export default function ManagerDashboard() {
                   </button>
                 </div>
               </div>
-            </div>
 
             {/* Error Message */}
             {error && (
@@ -453,27 +419,92 @@ export default function ManagerDashboard() {
         {/* Add / Edit Modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <form onSubmit={handleFormSubmit} className="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">{editingLotId ? 'Edit Parking Lot' : 'Add Parking Lot'}</h2>
+            <form onSubmit={handleFormSubmit} className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-lg">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-lg font-bold">{editingLotId ? 'Edit Parking Lot' : 'Add Parking Lot'}</h2>
+                  <p className="text-sm text-gray-500 mt-1">Set pricing, time limits and special offers for this lot.</p>
+                </div>
                 <button type="button" onClick={() => setShowForm(false)} className="text-gray-500">Close</button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                <input name="name" placeholder="Lot name" value={formData.name} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
-                <input name="address" placeholder="Address" value={formData.address} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
-                <div className="grid grid-cols-2 gap-2">
-                  <input name="totalSlots" type="number" placeholder="Total slots" value={formData.totalSlots} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
-                  <input name="pricePerHour" type="number" placeholder="Price per hour" value={formData.pricePerHour} onChange={handleFormChange} className="border px-3 py-2 rounded" required />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-600">Lot name</label>
+                  <input name="name" placeholder="Lot name" value={formData.name} onChange={handleFormChange} className="border px-3 py-2 rounded w-full mt-1" required />
                 </div>
-                <input name="timeLimitMinutes" type="number" placeholder="Time limit (minutes)" value={formData.timeLimitMinutes} onChange={handleFormChange} className="border px-3 py-2 rounded" />
-                <input name="specialOffers" placeholder="Special offers" value={formData.specialOffers} onChange={handleFormChange} className="border px-3 py-2 rounded" />
-                <label className="flex items-center space-x-2"><input name="active" type="checkbox" checked={formData.active} onChange={handleFormChange} /> <span>Active</span></label>
+                <div>
+                  <label className="text-sm text-gray-600">Address</label>
+                  <input name="address" placeholder="Address" value={formData.address} onChange={handleFormChange} className="border px-3 py-2 rounded w-full mt-1" required />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Total slots</label>
+                  <input name="totalSlots" type="number" min="0" placeholder="Total slots" value={formData.totalSlots} onChange={handleFormChange} className="border px-3 py-2 rounded w-full mt-1" required />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Price per hour</label>
+                  <div className="flex items-center mt-1">
+                    <span className="px-3 py-2 bg-gray-100 border border-r-0 rounded-l">$</span>
+                    <input name="pricePerHour" type="number" min="0" step="0.5" placeholder="0.00" value={formData.pricePerHour} onChange={handleFormChange} className="border px-3 py-2 rounded-r w-full" required />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-sm text-gray-600">Time limit</label>
+                  <div className="flex items-center gap-3 mt-1">
+                    <select
+                      className="border px-3 py-2 rounded"
+                      value={['0','30','60','120','240'].includes(String(formData.timeLimitMinutes)) ? String(formData.timeLimitMinutes) : (formData.timeLimitMinutes ? 'custom' : '0')}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '0') setFormData(prev => ({ ...prev, timeLimitMinutes: 0 }));
+                        else if (v === 'custom') setFormData(prev => ({ ...prev, timeLimitMinutes: prev.timeLimitMinutes || 60 }));
+                        else setFormData(prev => ({ ...prev, timeLimitMinutes: Number(v) }));
+                      }}
+                    >
+                      <option value="0">No limit</option>
+                      <option value="30">30 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="120">2 hours</option>
+                      <option value="240">4 hours</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    {String(formData.timeLimitMinutes) === 'custom' || (formData.timeLimitMinutes && !['0','30','60','120','240'].includes(String(formData.timeLimitMinutes))) ? (
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="minutes"
+                        className="border px-3 py-2 rounded w-40"
+                        value={formData.timeLimitMinutes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, timeLimitMinutes: Number(e.target.value || 0) }))}
+                      />
+                    ) : null}
+                    <div className="text-sm text-gray-500">{formData.timeLimitMinutes ? `${formData.timeLimitMinutes} min` : 'No limit'}</div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-sm text-gray-600">Special offers</label>
+                  <textarea name="specialOffers" rows={3} placeholder="e.g. 20% off after 5pm, Free 30 minutes" value={formData.specialOffers} onChange={handleFormChange} className="border px-3 py-2 rounded w-full mt-1" />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(formData.specialOffers || '').split(/[,\n]/).map((o) => o.trim()).filter(Boolean).slice(0,5).map((offer, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                        {offer}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <label className="flex items-center space-x-2"><input name="active" type="checkbox" checked={formData.active} onChange={handleFormChange} /> <span>Active</span></label>
+                </div>
               </div>
 
-              <div className="mt-4 flex justify-end space-x-2">
+              <div className="mt-6 flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded border">Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white">{editingLotId ? 'Save' : 'Create'}</button>
+                <button type="submit" className="px-4 py-2 rounded bg-gradient-to-r from-blue-600 to-indigo-600 text-white">{editingLotId ? 'Save Changes' : 'Create Lot'}</button>
               </div>
             </form>
           </div>
