@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -21,10 +21,14 @@ import DashboardApplications from "./pages/dashboard/DashboardApplications";
 
 import SlideOne from "./components/slideone";
 export default function App() {
+  const location = useLocation();
+  const authPages = ["/login", "/signup"];
+  const hideChrome = authPages.includes(location.pathname);
+
   return (
     <BrowserRouter>
       <div className="bg-gray-50 min-h-screen flex flex-col">
-        <Header />
+        {!hideChrome && <Header />}
 
         <main className="flex-1">
           <Routes>
@@ -48,7 +52,7 @@ export default function App() {
           </Routes>
         </main>
 
-        <Footer />
+        {!hideChrome && <Footer />}
       </div>
     </BrowserRouter>
   );
