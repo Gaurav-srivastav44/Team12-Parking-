@@ -19,14 +19,23 @@ export default function Login() {
       // Mock login - replace with actual API call when backend is ready
       if (user && pass) {
         const mockToken = 'mock-jwt-token-' + Date.now();
+        // assign role based on username for demo accounts
+        let role = 'user';
+        const uname = String(user).toLowerCase();
+        if (uname === 'manager' || uname.includes('manager')) role = 'manager';
+        else if (uname === 'admin' || uname.includes('admin')) role = 'admin';
+
         const userData = {
           username: user,
           id: Date.now(),
-          role: 'user',
+          role,
         };
-        
+
         login(userData, mockToken);
-        navigate('/manager-dashboard');
+        // Redirect based on role
+        if (role === 'manager') navigate('/manager-dashboard');
+        else if (role === 'admin') navigate('/admin-dashboard');
+        else navigate('/');
       } else {
         setError('Please enter username and password');
       }
