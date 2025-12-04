@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import { FaUser, FaLock, FaArrowRight, FaMagic } from 'react-icons/fa';
 
 export default function Login() {
@@ -12,7 +13,31 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const performLogin = async (user, pass) => {
+  const inferRole = (name, override) => {
+    if (override) return override;
+    const normalized = name?.trim().toLowerCase();
+    if (normalized === 'admin') return 'admin';
+    if (normalized === 'manager') return 'manager';
+    return 'user';
+  };
+
+  const getRedirectPath = (role) =>
+    role === 'admin' || role === 'manager' ? '/manager-dashboard' : '/user-dashboard';
+
+  const performMockLogin = (user, roleOverride) => {
+    const role = inferRole(user, roleOverride);
+    const mockToken = 'mock-jwt-token-' + Date.now();
+    const userData = {
+      username: user,
+      id: Date.now(),
+      role,
+    };
+    login(userData, mockToken);
+    navigate(getRedirectPath(role), { replace: true });
+  };
+
+  const performLogin = async (user, pass, options = {}) => {
+    const { roleOverride, skipApi } = options;
     setError('');
     setLoading(true);
 
@@ -22,31 +47,35 @@ export default function Login() {
         return;
       }
 
-      // Mock Login
-      const mockToken = 'mock-jwt-token-' + Date.now();
-
-      let role = 'user';
-
-      // Auto-assign roles based on demo accounts
-      if (user === 'admin') role = 'admin';
-      if (user === 'manager') role = 'manager';
-
-      const userData = {
-        username: user,
-        id: Date.now(),
-        role: role,
-      };
-
-      login(userData, mockToken);
-
-      // Redirect based on role
-      if (role === 'manager' || role === 'admin') {
-        navigate('/manager-dashboard');
-      } else {
-        navigate('/user-dashboard');
+      if (skipApi) {
+        performMockLogin(user, roleOverride);
+        return;
       }
 
+      const { token } = await api.login(user, pass);
+      let userData = {
+        username: user,
+        id: Date.now(),
+        role: inferRole(user, roleOverride),
+      };
+
+      try {
+        const profile = await api.getProfile(token);
+        userData = {
+          username: profile.username || profile.email || user,
+          id: profile._id || profile.id || Date.now(),
+          role: profile.role || inferRole(user, roleOverride),
+          fullName: profile.fullName,
+          email: profile.email,
+        };
+      } catch (profileErr) {
+        console.warn('Profile fetch failed:', profileErr);
+      }
+
+      login(userData, token);
+      navigate(getRedirectPath(userData.role), { replace: true });
     } catch (err) {
+      console.error('Login failed:', err);
       setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -58,10 +87,13 @@ export default function Login() {
     await performLogin(username, password);
   };
 
-  const handleDemoLogin = async (demoUser) => {
+  const handleDemoLogin = async (demoUser, roleOverride) => {
     setUsername(demoUser.username);
     setPassword(demoUser.password);
-    await performLogin(demoUser.username, demoUser.password);
+    await performLogin(demoUser.username, demoUser.password, {
+      roleOverride,
+      skipApi: true,
+    });
   };
 
   return (
@@ -134,7 +166,9 @@ export default function Login() {
 
         <div className="space-y-3">
           <button
-            onClick={() => handleDemoLogin({ username: 'demo_user', password: 'demo123' })}
+            onClick={() =>
+              handleDemoLogin({ username: 'demo_user', password: 'demo123' }, 'user')
+            }
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >
@@ -143,7 +177,9 @@ export default function Login() {
           </button>
 
           <button
-            onClick={() => handleDemoLogin({ username: 'admin', password: 'admin123' })}
+            onClick={() =>
+              handleDemoLogin({ username: 'admin', password: 'admin123' }, 'admin')
+            }
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >
@@ -152,7 +188,9 @@ export default function Login() {
           </button>
 
           <button
-            onClick={() => handleDemoLogin({ username: 'manager', password: 'manager123' })}
+            onClick={() =>
+              handleDemoLogin({ username: 'manager', password: 'manager123' }, 'manager')
+            }
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition shadow-md"
           >

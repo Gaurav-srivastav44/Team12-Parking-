@@ -1,23 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useParkingLots } from '../hooks/useParkingLots';
 import { mockApi } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LotCard from '../components/LotCard';
-import { FaSearch, FaClock, FaMapMarkerAlt, FaCar } from 'react-icons/fa';
+import MapPicker from '../components/MapPicker';
+import {
+  FaSearch,
+  FaClock,
+  FaMapMarkerAlt,
+  FaCar,
+  FaFilter,
+  FaMap,
+  FaList,
+  FaBell,
+  FaInfoCircle,
+  FaLocationArrow,
+} from 'react-icons/fa';
+import ParkingMap from '../components/ParkingMap';
 
 export default function UserDashboard() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { parkingLots, loading, error, refetch } = useParkingLots();
+  const { parkingLots, loading, refetch } = useParkingLots();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [reservations, setReservations] = useState([]);
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [activeTab, setActiveTab] = useState('explore');
 
   const [userLocation, setUserLocation] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+  const [filters, setFilters] = useState({
+    covered: false,
+    open: false,
+    ev: false,
+    accessible: false,
+  });
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [mapPickerKey, setMapPickerKey] = useState(0);
 
+  // Get Current Location
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -86,8 +114,8 @@ export default function UserDashboard() {
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos(lat1 * Math.PI / 180) *
-        Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) ** 2;
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2;
 
     return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
   };
@@ -119,7 +147,9 @@ export default function UserDashboard() {
           <p className="text-gray-600 text-lg">Find and reserve your parking space</p>
         </div>
 
+        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
@@ -155,7 +185,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* --- TABS --- */}
         <div className="mb-6 bg-white rounded-xl shadow-md p-1 inline-flex">
           <button
             onClick={() => setActiveTab('explore')}
@@ -170,22 +200,29 @@ export default function UserDashboard() {
 
           <button
             onClick={() => setActiveTab('my-reservations')}
-            className={`px-6 py-3 rounded-lg font-semibold relative ${
+            className={`px-6 py-3 rounded-lg font-semibold ${
               activeTab === 'my-reservations'
                 ? 'bg-blue-600 text-white shadow'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
             My Reservations
-            {reservations.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {reservations.length}
-              </span>
-            )}
           </button>
         </div>
 
-        {/* Explore Tab */}
+        {/* 🌍 LOCATION PICKER BUTTON */}
+        {activeTab === "explore" && (
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={() => setShowMap(true)}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 shadow-md"
+            >
+              📍 Set My Location on Map
+            </button>
+          </div>
+        )}
+
+        {/* --- EXPLORE TAB --- */}
         {activeTab === 'explore' && (
           <div>
             <div className="mb-6">
@@ -198,27 +235,6 @@ export default function UserDashboard() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-
-              <div className="flex gap-4 justify-center mt-4">
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={() => setSearchTerm("mall")}
-                  className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Near Malls
-                </button>
-                <button
-                  onClick={() => setSearchTerm("hospital")}
-                  className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  Near Hospitals
-                </button>
               </div>
             </div>
 
@@ -244,7 +260,6 @@ export default function UserDashboard() {
 
                   return (
                     <div key={lot.id} className="relative">
-
                       <span
                         className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold ${
                           available
@@ -276,7 +291,7 @@ export default function UserDashboard() {
           </div>
         )}
 
-        {/* Reservations Tab */}
+        {/* --- RESERVATIONS TAB --- */}
         {activeTab === 'my-reservations' && (
           <div>
             {loadingReservations ? (
@@ -285,9 +300,6 @@ export default function UserDashboard() {
               <div className="text-center py-12 bg-white rounded-xl shadow-lg">
                 <FaClock className="text-6xl text-gray-300 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold">No Active Reservations</h3>
-                <p className="text-gray-600 mt-2">
-                  Start by exploring parking lots and reserving a slot!
-                </p>
                 <button
                   onClick={() => setActiveTab("explore")}
                   className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -303,30 +315,41 @@ export default function UserDashboard() {
                     className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition"
                   >
                     <div className="flex justify-between items-start">
+
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <FaCar className="text-blue-600 text-xl" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold">{reservation.lotName}</h3>
-                            <p className="text-gray-600 text-sm">{reservation.lotAddress}</p>
+                            <h3 className="text-xl font-bold">
+                              {reservation.lotName}
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                              {reservation.lotAddress}
+                            </p>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                           <div className="bg-gray-50 rounded-lg p-3">
                             <p className="text-xs text-gray-500">Slot Number</p>
-                            <p className="font-bold text-lg">#{reservation.slotNumber}</p>
+                            <p className="font-bold text-lg">
+                              #{reservation.slotNumber}
+                            </p>
                           </div>
 
                           <div className="bg-gray-50 rounded-lg p-3">
                             <p className="text-xs text-gray-500">Vehicle</p>
-                            <p className="font-bold">{reservation.vehicleNumber}</p>
+                            <p className="font-bold">
+                              {reservation.vehicleNumber}
+                            </p>
                           </div>
 
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-xs text-gray-500">Remaining Time</p>
+                            <p className="text-xs text-gray-500">
+                              Remaining Time
+                            </p>
                             <p className="font-bold text-blue-600 animate-pulse">
                               {getRemainingTime(reservation.reservedUntil)}
                             </p>
@@ -365,6 +388,32 @@ export default function UserDashboard() {
         )}
 
       </div>
+
+      {/* 🌍 MAP MODAL */}
+      {showMap && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">Select Your Location on Map</h2>
+
+            <MapPicker
+              onSelect={(pos) => {
+                setUserLocation(pos);
+                setShowMap(false);
+              }}
+            />
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setShowMap(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
