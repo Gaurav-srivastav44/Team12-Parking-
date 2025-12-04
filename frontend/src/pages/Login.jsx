@@ -1,117 +1,227 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaUser, FaLock, FaArrowRight } from "react-icons/fa";
-import Logo from "../assets/logo/logo.png";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { FaUser, FaLock, FaArrowRight, FaMagic } from 'react-icons/fa';
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+  const { login } = useAuth();
 
-  useEffect(() => {
-    const cb = () => setLanguage(localStorage.getItem("language") || "en");
-    window.addEventListener("language-change", cb);
-    return () => window.removeEventListener("language-change", cb);
-  }, []);
-
-  const t = (en, hi) => (language === "en" ? en : hi);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  const performLogin = async (user, pass, isDemo = false) => {
+    setError('');
+    setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      if (isDemo) {
+        // Mock login for demo accounts
+        const mockToken = 'mock-jwt-token-' + Date.now();
+        let role = 'user';
+        if (user === 'admin' || user.includes('admin')) {
+          role = 'admin';
+        } else if (user === 'manager' || user.includes('manager')) {
+          role = 'manager';
+        }
+        
+        const userData = {
+          username: user,
+          id: Date.now(),
+          role: role,
+        };
+        
+        login(userData, mockToken);
+        
+        // Redirect based on role
+        if (role === 'user' || user === 'demo_user') {
+          navigate('/dashboard');
+        } else {
+          navigate('/dashboard'); // You can create separate manager dashboard later
+        }
+      } else {
+        // Real API login
+        const res = await fetch("http://localhost:5000/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user, password: pass }),
+        });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Invalid username or password");
+        }
 
-      // Save JWT Token
-      localStorage.setItem("token", data.token);
-
-      navigate("/dashboard");
+        // Get user profile
+        const profileRes = await fetch("http://localhost:5000/api/profile", {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        
+        if (!profileRes.ok) {
+          throw new Error("Failed to fetch user profile");
+        }
+        
+        const userData = await profileRes.json();
+        
+        // Determine role (default to 'user' if not specified)
+        // You can add role field to your User model later
+        let role = 'user';
+        if (userData.username === 'admin' || userData.username?.includes('admin')) {
+          role = 'admin';
+        } else if (userData.username === 'manager' || userData.username?.includes('manager')) {
+          role = 'manager';
+        }
+        
+        const userWithRole = {
+          ...userData,
+          role: role,
+        };
+        
+        login(userWithRole, data.token);
+        
+        // Redirect to dashboard
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter username and password');
+      return;
+    }
+    await performLogin(username, password, false);
+  };
+
+  const handleDemoLogin = async (demoUser) => {
+    setUsername(demoUser.username);
+    setPassword(demoUser.password);
+    await performLogin(demoUser.username, demoUser.password, true);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-[#dff0ff] flex justify-center items-center relative overflow-hidden">
-
-      {/* BIG BLURRED BACKGROUND LOGO */}
-      <img
-        src={Logo}
-        alt="blurred logo"
-        className="absolute w-[65%] opacity-20 blur-2xl select-none pointer-events-none"
-      />
-
-      {/* LOGIN CARD */}
-      <div className="relative bg-white/80 backdrop-blur-2xl shadow-xl border border-white/40 p-10 rounded-3xl w-full max-w-lg z-10">
-
-        {/* LOGO */}
-        <div className="flex justify-center mb-5">
-          <img src={Logo} alt="Logo" className="w-40 drop-shadow-md" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex justify-center items-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Parking Manager</h1>
+          <p className="text-gray-600">Sign in to continue</p>
         </div>
 
-        <h1 className="text-center text-xl font-semibold text-gray-700 mb-8">
-          {t("Find Your Perfect Parking Spot", "अपनी पार्किंग जगह खोजें")}
-        </h1>
-
         {error && (
-          <p className="text-center text-red-600 bg-red-100 py-2 rounded mb-4">
-            {t("Invalid username or password", "अमान्य उपयोगकर्ता नाम या पासवर्ड")}
-          </p>
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* USERNAME */}
-          <div className="relative mb-6">
-            <FaUser className="absolute left-3 top-4 text-gray-500" />
-            <input
-              type="text"
-              className="w-full p-3 pl-10 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder={t("Username", "उपयोगकर्ता नाम")}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <div className="relative">
+              <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder="Enter your username"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+                required
+              />
+            </div>
           </div>
 
-          {/* PASSWORD */}
-          <div className="relative mb-6">
-            <FaLock className="absolute left-3 top-4 text-gray-500" />
-            <input
-              type="password"
-              className="w-full p-3 pl-10 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder={t("Password", "पासवर्ड")}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder="Enter your password"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loading}
+                required
+              />
+            </div>
           </div>
 
-          {/* LOGIN BUTTON */}
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white py-3 rounded-xl font-semibold transition active:scale-95"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t("Login", "लॉगिन")} <FaArrowRight />
+            {loading ? 'Signing in...' : 'Sign In'}
+            {!loading && <FaArrowRight />}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 mt-5">
-          Don’t have an account?{" "}
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or use demo accounts</span>
+          </div>
+        </div>
+
+        {/* Demo Login Buttons */}
+        <div className="space-y-3">
+          <button
+            onClick={() => handleDemoLogin({ username: 'demo_user', password: 'demo123' })}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          >
+            <FaMagic className="mr-1" />
+            Demo User
+          </button>
+          
+          <button
+            onClick={() => handleDemoLogin({ username: 'admin', password: 'admin123' })}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          >
+            <FaUser className="mr-1" />
+            Admin Demo
+          </button>
+
+          <button
+            onClick={() => handleDemoLogin({ username: 'manager', password: 'manager123' })}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          >
+            <FaUser className="mr-1" />
+            Manager Demo
+          </button>
+        </div>
+
+        <p className="text-center text-gray-500 mt-6 text-xs">
+          Or enter any username and password to continue
+        </p>
+
+        <p className="text-center text-gray-600 mt-4 text-sm">
+          Don't have an account?{' '}
           <a href="/signup" className="text-blue-700 font-bold hover:underline">
             Sign Up
           </a>
         </p>
-
       </div>
     </div>
   );
