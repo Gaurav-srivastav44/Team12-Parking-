@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaUsers, FaParking, FaClipboardList, FaCogs } from 'react-icons/fa';
 
 export default function AdminDashboard() {
-  // Lightweight admin overview UI — can be extended later
+  const [activeTab, setActiveTab] = useState('overview');
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -13,7 +14,36 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Users
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'settings' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Settings
+            </button>
+          </nav>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4">
             <div className="p-3 bg-blue-50 rounded-lg">
               <FaUsers className="text-blue-600 text-xl" />
@@ -30,7 +60,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Total Lots</div>
-              <div className="text-2xl font-bold text-gray-900">{/* dynamic value */} {42}</div>
+              <div className="text-2xl font-bold text-gray-900">42</div>
             </div>
           </div>
 
@@ -40,7 +70,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Active Reservations</div>
-              <div className="text-2xl font-bold text-gray-900">{/* dynamic value */} 128</div>
+              <div className="text-2xl font-bold text-gray-900">128</div>
             </div>
           </div>
 
@@ -55,27 +85,29 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-3">Recent Admin Actions</h3>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li>Updated pricing for Lot A</li>
-              <li>Deactivated user demo_user</li>
-              <li>Generated monthly revenue report</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
-            <div className="flex flex-col gap-3">
-              <button className="text-left px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded">Manage Users</button>
-              <button className="text-left px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded">Manage Lots</button>
-              <button className="text-left px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded">View Reports</button>
+        <div className="tab-content-wrapper bg-white rounded-lg shadow p-6">
+          {activeTab === 'overview' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Overview</h3>
+              <p className="text-gray-600">Quick summary and recent activity.</p>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'users' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Users</h3>
+              <p className="text-gray-600">Manage users from this panel (coming soon).</p>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Settings</h3>
+              <p className="text-gray-600">Platform-wide settings and preferences.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
