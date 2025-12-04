@@ -85,36 +85,24 @@ A comprehensive backend system for real-time parking slot availability managemen
 
 ## API Endpoints
 
-### Authentication
+### Authentication (3 endpoints)
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
 - `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user (Protected)
 
-### Parking Lots
-- `GET /api/parking` - Get all parking lots (with filters)
-- `GET /api/parking/:id` - Get single parking lot
-- `GET /api/parking/:id/available-slots` - Get available slots
-- `GET /api/parking/:id/slots` - Get all slots
+### Parking Lots (3 endpoints)
+- `GET /api/parking` - Get all parking lots
+- `GET /api/parking/:id` - Get single parking lot (with availability summary)
 - `POST /api/parking` - Create parking lot (Manager/Admin)
-- `PUT /api/parking/:id` - Update parking lot (Manager/Admin)
-- `DELETE /api/parking/:id` - Delete parking lot (Manager/Admin)
 
-### Slots
-- `POST /api/parking/:id/slots` - Create slot (Manager/Admin)
-- `PUT /api/parking/:id/slots/:slotId` - Update slot (Manager/Admin)
-
-### Bookings
+### Bookings (3 endpoints)
 - `POST /api/bookings` - Create booking (Driver)
-- `GET /api/bookings` - Get user bookings
-- `GET /api/bookings/:id` - Get single booking
+- `GET /api/bookings` - Get current user's bookings
 - `PUT /api/bookings/:id` - Update booking (start/end/cancel)
-- `GET /api/parking/:id/bookings` - Get parking lot bookings (Manager/Admin)
 
-### Notifications
+### Notifications (3 endpoints)
 - `GET /api/notifications` - Get user notifications
 - `PUT /api/notifications/:id/read` - Mark notification as read
-- `PUT /api/notifications/read-all` - Mark all as read
 - `DELETE /api/notifications/:id` - Delete notification
 
 ### Dashboard
